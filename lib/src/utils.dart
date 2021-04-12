@@ -31,7 +31,7 @@ String bulletItems(Iterable<String> items) => items.map((l) => '  * $l').join('\
 
 /// Returns the name of the package referenced in the `include:` directive in an
 /// analysis_options.yaml file, or null if there is not one.
-String getAnalysisOptionsIncludePackage({String path}) {
+String? getAnalysisOptionsIncludePackage({String? path}) {
   final optionsFile = File(p.join(path ?? p.current, 'analysis_options.yaml'));
   if (!optionsFile.existsSync()) return null;
 
@@ -109,7 +109,7 @@ List<String> getDependenciesWithPins(Map<String, Dependency> dependencies, {List
       continue;
     }
 
-    String version;
+    String? version;
     final packageMeta = dependencies[packageName];
 
     if (packageMeta is HostedDependency) {
@@ -142,7 +142,7 @@ DependencyPinEvaluation inspectVersionForPins(VersionConstraint constraint) {
       return DependencyPinEvaluation.inclusiveMax;
     }
 
-    final Version max = constraint.max;
+    final Version? max = constraint.max;
 
     if (max == null) {
       return DependencyPinEvaluation.notAPin;

@@ -37,19 +37,21 @@ Future<Null> run() async {
   }
 
   final config = PubspecDepValidatorConfig.fromYaml(File('pubspec.yaml').readAsStringSync()).dependencyValidator;
-  final configExcludes = config?.exclude
-      ?.map((s) {
-        try {
-          return Glob(s);
-        } catch (_, __) {
-          logger.shout('invalid glob syntax: "$s"');
-          return null;
-        }
-      })
-      ?.where((g) => g != null)
-      ?.toList();
-  final excludes = configExcludes ?? <Glob>[];
-  logger.fine('excludes:\n${bulletItems(excludes.map((g) => g.pattern))}\n');
+  List<Glob> excludes = <Glob>[];
+
+  final exclude = config?.exclude;
+  if (exclude != null) {
+    exclude.forEach((s) {
+      try {
+        excludes.add(Glob(s));
+      } catch (_, __) {
+        logger.shout('invalid glob syntax: "$s"');
+        return null;
+      }
+    });
+  }
+
+  logger.fine('excludes:\n${bulletItems(excludes.map((g) => g!.pattern))}\n');
   final ignoredPackages = config?.ignore ?? <String>[];
   logger.fine('ignored packages:\n${bulletItems(ignoredPackages)}\n');
 
@@ -57,7 +59,7 @@ Future<Null> run() async {
   final optionsIncludePackage = getAnalysisOptionsIncludePackage();
 
   // Read and parse the pubspec.yaml in the current working directory.
-  final pubspec = Pubspec.parse(File('pubspec.yaml').readAsStringSync(), sourceUrl: 'pubspec.yaml');
+  final pubspec = Pubspec.parse(File('pubspec.yaml').readAsStringSync(), sourceUrl: Uri.dataFromString('pubspec.yaml'));
 
   logger.info('Validating dependencies for ${pubspec.name}\n');
 
@@ -97,19 +99,19 @@ Future<Null> run() async {
   for (final file in publicDartFiles) {
     final matches = importExportDartPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedInPublicFiles.add(match.group(2));
+      packagesUsedInPublicFiles.add(match.group(2)!);
     }
   }
   for (final file in publicScssFiles) {
     final matches = importScssPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedInPublicFiles.add(match.group(1));
+      packagesUsedInPublicFiles.add(match.group(1)!);
     }
   }
   for (final file in publicLessFiles) {
     final matches = importLessPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedInPublicFiles.add(match.group(1));
+      packagesUsedInPublicFiles.add(match.group(1)!);
     }
   }
   logger.fine('packages used in public facing files:\n'
@@ -139,19 +141,19 @@ Future<Null> run() async {
   for (final file in nonPublicDartFiles) {
     final matches = importExportDartPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedOutsidePublicDirs.add(match.group(2));
+      packagesUsedOutsidePublicDirs.add(match.group(2)!);
     }
   }
   for (final file in nonPublicScssFiles) {
     final matches = importScssPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedOutsidePublicDirs.add(match.group(1));
+      packagesUsedOutsidePublicDirs.add(match.group(1)!);
     }
   }
   for (final file in nonPublicLessFiles) {
     final matches = importLessPackageRegex.allMatches(file.readAsStringSync());
     for (final match in matches) {
-      packagesUsedOutsidePublicDirs.add(match.group(1));
+      packagesUsedOutsidePublicDirs.add(match.group(1)!);
     }
   }
 
@@ -257,9 +259,9 @@ Future<Null> run() async {
       ].map((key) => normalizeBuilderKeyUsage(key, pubspec.name)).any((key) => key.startsWith('$dependencyName:'));
 
   final packagesWithConsumedBuilders = Set<String>();
-  for (final package in unusedDependencies.map((name) => packageConfig[name])) {
+  for (final package in unusedDependencies.map((name) => packageConfig?[name])) {
     // Check if a builder is used from this package
-    if (rootPackageReferencesDependencyInBuildYaml(package.name) ||
+    if (rootPackageReferencesDependencyInBuildYaml(package!.name) ||
         await dependencyDefinesAutoAppliedBuilder(p.fromUri(package.root))) {
       packagesWithConsumedBuilders.add(package.name);
     }
@@ -274,9 +276,9 @@ Future<Null> run() async {
 
   // Remove deps that provide executables, those are assumed to be used
   final packagesWithExecutables = Set<String>();
-  for (final package in unusedDependencies.map((name) => packageConfig[name])) {
+  for (final package in unusedDependencies.map((name) => packageConfig?[name])) {
     // Search for executables, if found we assume they are used
-    final binDir = Directory(p.join(p.fromUri(package.root), 'bin'));
+    final binDir = Directory(p.join(p.fromUri(package!.root), 'bin'));
     hasDartFiles() => binDir.listSync().any((entity) => entity.path.endsWith('.dart'));
     if (binDir.existsSync() && hasDartFiles()) {
       packagesWithExecutables.add(package.name);
